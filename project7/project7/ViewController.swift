@@ -15,9 +15,14 @@ class ViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        performSelector(inBackground: #selector(fetchJSON), with: nil)
+        
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .bookmarks, target: self, action: #selector(credits))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(filter))
         
+    }
+    
+   @objc func fetchJSON() {
         let urlString: String
         
         if navigationController?.tabBarItem.tag == 0 {
@@ -26,14 +31,15 @@ class ViewController: UITableViewController {
             urlString = "https://www.hackingwithswift.com/samples/petitions-2.json"
         }
         
-        if let url = URL(string: urlString) {
-            if let data = try? Data(contentsOf: url) {
-                parse(json: data)
-                return
-            }
+    if let url = URL(string: urlString) {
+        if let data = try? Data(contentsOf: url) {
+            parse(json: data)
+            return
         }
-        
     }
+    performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
+    }
+
     
     @objc func filter() {
         let ac = UIAlertController(title: "Enter word", message: nil, preferredStyle: .alert)
@@ -65,11 +71,12 @@ class ViewController: UITableViewController {
         present(ac, animated: true)
     }
     
-    func showError() {
+    @objc func showError() {
         let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again.", preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "Ok", style: .default))
-        present(ac, animated: true)
+            present(ac, animated: true)
     }
+   
     
     func parse(json: Data) {
         let decoder = JSONDecoder()
@@ -77,7 +84,9 @@ class ViewController: UITableViewController {
         if let jsonPetitions = try? decoder.decode(Petitions.self, from: json) {
             petitions = jsonPetitions.results
             dataFilter()
-            tableView.reloadData()
+            tableView.performSelector(onMainThread: #selector(UITableView.reloadData), with: nil, waitUntilDone: false)
+        } else {
+            performSelector(onMainThread: #selector(showError), with: nil, waitUntilDone: false)
         }
     }
     
